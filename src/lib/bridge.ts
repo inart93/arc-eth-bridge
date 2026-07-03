@@ -20,21 +20,72 @@ export type BridgeStepEvent = {
 
 export const kit = new AppKit();
 
-/**
- * Runs a bridge transfer between Arc Testnet and Ethereum Sepolia using a
- * single connected browser wallet for both legs. CCTP handles the
- * approve -> burn -> attest -> mint lifecycle; this function just wires
- * App Kit's event stream to a UI-friendly callback.
- */
-export async function runBridge({
-  wallet,
-  direction,
-  amount,
-  onEvent,
-}: {
+export async function runBridge(params: {
   wallet: ConnectedWallet;
   direction: BridgeDirection;
   amount: string;
+  onEvent: (event: BridgeStepEvent) => void;
+}) {
+  const wallet = params.wallet;
+  const direction = params.direction;
+  const amount = params.amount;
+  const onEvent = params.onEvent;
+
+  const unsubscribe: any = (kit as any).on("*", function (payload: any) {
+    onEvent({
+      id:
+        (payload && payload.values && payload.values.name
+          ? payload.values.name
+          : payload && payload.method
+          ? payload.method
+          : "event") +
+        "-" +
+        (payload && payload.values && payload.values.txHash
+          ? payload.values.txHash
+          : Date.now()),
+      name:
+        payload && payload.values && payload.values.name
+          ? payload.values.name
+          : payload && payload.method
+          ? payload.method
+          : "event",
+      state:
+        payload && payload.values && payload.values.state
+          ? payload.values.state
+          : "pending",
+      txHash:
+        payload && payload.values && payload.values.txHash
+          ? payload.values.txHash
+          : payload && payload.values && payload.values.data
+          ? payload.values.data.txHash
+          : undefined,
+      explorerUrl:
+        payload && payload.values ? payload.values.explorerUrl : undefined,
+      raw: payload,
+    });
+  });
+
+  try {
+    let result: any = await (kit as any).bridge({
+      from: { adapter: wallet.adapter, chain: CHAINS[direction.from] },
+      to: { adapter: wallet.adapter, chain: CHAINS[direction.to] },
+      amount: amount,
+    });
+
+    if (result && result.state === "error") {
+      result = await (kit as any).retryBridge(result, {
+        from: wallet.adapter,
+        to: wallet.adapter,
+      });
+    }
+
+    return result;
+  } finally {
+    if (typeof unsubscribe === "function") {
+      unsubscribe();
+    }
+  }
+}  amount: string;
   onEvent: (event: BridgeStepEvent) => void;
 }) {
   const unsubscribe = kit.on("*", (payload: any) => {
