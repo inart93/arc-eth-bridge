@@ -1,0 +1,31 @@
+:root {
+  --bg: #eef8f1;
+  --panel: #ffffff;
+  --panel-2: #e2f5e9;
+  --ink: #0f2418;
+  --ink-soft: #4a6b58;
+  --line: #0f2418;
+  --accent: #21d07a;
+  --accent-ink: #0f2418;
+  --arc-tint: #d5f7e4;
+  --eth-tint: #d9f0ff;
+  --success: #12b866;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-display);
